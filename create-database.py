@@ -8,6 +8,7 @@ import util
 def create_tables(cursor):
     sql = cursor
 
+    print("Creating tables....")
     # Create the comments table
     sql.execute('''CREATE TABLE comments (id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE, body TEXT NOT NULL, score INTEGER,
@@ -20,9 +21,11 @@ def create_tables(cursor):
 
     # Create the table which links the comments to the terms
     sql.execute('''CREATE TABLE comment_terms (id INTEGER PRIMARY KEY AUTOINCREMENT,
-      term_id INTEGER NOT NULL, frequency INTEGER NOT NULL, comment_id INTEGER
-      NOT NULL, FOREIGN KEY (comment_id) REFERENCES comments (id), FOREIGN KEY
-      (term_id) REFERENCES terms (id) )''')
+      term TEXT NOT NULL, frequency INTEGER NOT NULL, comment_name TEXT
+      NOT NULL, FOREIGN KEY (comment_name) REFERENCES comments (name), FOREIGN KEY
+      (term) REFERENCES terms (term) )''')
+
+    con.commit()
 
 
 def fill_tables(comments, cursor):
@@ -34,19 +37,54 @@ def fill_tables(comments, cursor):
 
     cursor.executemany('''INSERT INTO comments (name, body, score, parent_name,
       subreddit) VALUES (?, ?, ?, ?, ?)''', rows)
+    con.commit()
+
 
     # Fill the comment terms table
-    terms = {}
-    comment_terms = ()
-    for comment in comments:
-        words = util.tokenize(comment['body'], stopwords)
-        for term in words:
-            if term not in terms:
-                terms[term] = 1
+    print("Indexing terms...")
+    comment_count = len(comments)
+    table_terms = {}
+    table_comment_terms = []
+    progress = 0
+
+    # Loop through all comments
+    for index, comment in enumerate(comments):
+        terms = util.tokenize(comment['body'], stopwords)
+        comment_terms = {}
+
+        # Loop through all terms in a comment
+        for term in terms:
+
+            # Add terms to the term table
+            if term not in table_terms:
+                table_terms[term] = 1
             else:
-                terms[term] += 1
+                table_terms[term] += 1
 
+            # Add terms to the comment_terms record
+            if term not in comment_terms:
+                comment_terms[term] = 1
+            else:
+                comment_terms[term] += 1
 
+        # Create the comment_terms records for future serialising
+        for term, frequency in comment_terms.items():
+            table_comment_terms.append((term, frequency, comment['id']))
+
+        if (index / comment_count) * 100 > progress:
+            print(str(progress) + "%")
+            progress += 10
+
+    # Add the gathered data to the database
+    print("Adding index data to database...")
+
+    rows = [(term, frequency) for term, frequency in table_terms.items()]
+    cursor.executemany('''INSERT INTO terms (term, frequency) VALUES
+      (?, ?)''', rows)
+
+    cursor.executemany('''INSERT INTO comment_terms
+      (term, frequency, comment_name) VALUES (?, ?, ?)''', table_comment_terms)
+    con.commit()
 
 
 if __name__ == '__main__':
