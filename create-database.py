@@ -32,6 +32,9 @@ def fill_tables(comments, cursor):
     # Fill the comments table
     rows = []
     for comment in comments:
+        if comment['score'] <= 0:  # Avoid spammy comments
+            continue
+
         rows.append((comment['name'], comment['body'], comment['score'],
                      comment['parent_id'], comment['subreddit']))
 
@@ -49,6 +52,9 @@ def fill_tables(comments, cursor):
 
     # Loop through all comments
     for index, comment in enumerate(comments):
+        if comment['score'] <= 0:  # Avoid spammy comments
+            continue
+
         terms = util.tokenize(comment['body'], stopwords)
         comment_terms = {}
 
