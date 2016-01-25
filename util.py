@@ -1,3 +1,5 @@
+import re
+
 from nltk.tokenize import RegexpTokenizer
 from nltk.tokenize import word_tokenize
 from nltk.stem import *
@@ -17,6 +19,7 @@ def tokenize(text, stopwords=None):
         stopwords = []
 
     words = word_tokenize(text)
-    words = filter(lambda word: word not in stopwords, words)
     words = [stem(word) for word in words]
+    words = list(filter(lambda word: re.match(r'^[a-zA-Z0-9]*$', word), words))
+    words = list(filter(lambda word: word not in stopwords, words))
     return words

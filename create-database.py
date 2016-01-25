@@ -69,7 +69,7 @@ def fill_tables(comments, cursor):
 
         # Create the comment_terms records for future serialising
         for term, frequency in comment_terms.items():
-            table_comment_terms.append((term, frequency, comment['id']))
+            table_comment_terms.append((term, frequency, comment['name']))
 
         if (index / comment_count) * 100 > progress:
             print(str(progress) + "%")
@@ -92,6 +92,7 @@ if __name__ == '__main__':
     file_name = sys.argv[1]
     database_name = file_name + ".db"
     stopwords = open("assets/stopwords.txt").readlines()
+    stopwords = [x.strip('\n') for x in stopwords]
 
     # Remove any existing databases
     print("Saving '" + file_name + "' to '" + database_name + "'.")
